@@ -11,6 +11,7 @@ public class Bot {
 
     private Map<String, Integer> proxies;
     private int votes = 0;
+    private int tries = 0;
 
     public Bot() {
         this.proxies = new HashMap<>();
@@ -26,6 +27,9 @@ public class Bot {
     }
 
     private void vote(int poll, int option, String ip, int port) {
+        tries++;
+        System.out.println("Try #" + tries);
+
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(ip, port));
         HttpURLConnection con = null;
         try {
@@ -44,15 +48,14 @@ public class Bot {
         con.addRequestProperty("Content-Type", "application/json");
         con.addRequestProperty("User-Agent", "Mozilla/5.0");
         con.setDoOutput(true);
-        con.setReadTimeout(1000);
-        con.setConnectTimeout(1000);
+        con.setConnectTimeout(300);
+        con.setReadTimeout(500);
 
         BufferedWriter out = null;
         try {
             out = new BufferedWriter(new OutputStreamWriter(con.getOutputStream()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException ignored) {}
+
         JSONObject json = new JSONObject();
         json.put("pollId", poll);
         json.put("votes", new Integer[] { option });
@@ -78,9 +81,7 @@ public class Bot {
                 votes++;
                 System.out.println("Good proxy\n " + ip + ":" + port);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException ignored) {}
     }
 
     public static void main(String[] args) {
@@ -122,10 +123,17 @@ public class Bot {
             while ((input = in.readLine()) != null) {
                 try {
                     String[] split = input.split(":");
-                    proxies.put(split[0], Integer.parseInt(split[1].split(" ")[0]));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                    String ip = split[0];
+
+                    int port;
+                    try {
+                        port = Integer.parseInt(split[1].split(" ")[0]);
+                    } catch (Exception e) {
+                        continue;
+                    }
+
+                    proxies.put(ip, port);
+                } catch (Exception ignored) {}
             }
         } catch (IOException e) {
             e.printStackTrace();
