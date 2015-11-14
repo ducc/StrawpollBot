@@ -45,10 +45,11 @@ public class Bot {
         } catch (ProtocolException e) {
             e.printStackTrace();
         }
+
         con.addRequestProperty("Content-Type", "application/json");
         con.addRequestProperty("User-Agent", "Mozilla/5.0");
         con.setDoOutput(true);
-        con.setConnectTimeout(300);
+        con.setConnectTimeout(500);
         con.setReadTimeout(500);
 
         BufferedWriter out = null;
@@ -85,7 +86,11 @@ public class Bot {
     }
 
     public static void main(String[] args) {
-        new Bot().bot(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
+        try {
+            new Bot().bot(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Usage: java -jar StrawpollBot.jar <poll id> <option>");
+        }
     }
 
     private void loadFile(String name) {
