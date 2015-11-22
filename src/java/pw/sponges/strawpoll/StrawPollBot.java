@@ -14,63 +14,79 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class StrawPollBot {
     
     private Map<String, Integer> proxies;
-    private int votes = 0;
+    private AtomicInteger votes;
+    private AtomicInteger completed;
+    
+    public static void main(String[] args) throws IOException, InterruptedException {
+        new StrawPollBot().bot(6076888, 1);
+    }
     
     public StrawPollBot() throws IOException {
         proxies = new HashMap<>();
         loadFile("proxies.txt");
+        votes = new AtomicInteger(0);
+        completed = new AtomicInteger(0);
     }
     
-    private void bot(int pollId, int option) {
+    private void bot(int pollId, int option) throws InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(2000);
         for (String ip : proxies.keySet()) {
-            try {
+            executorService.submit(() -> {
                 vote(pollId, option, ip, proxies.get(ip));
-            } catch (IOException e) {
-                e.printStackTrace();
+            });
+        }
+        executorService.shutdown();
+        final int proxyCount = proxies.size();
+        while (!executorService.isTerminated()) {
+            System.out.println(((int) ((completed.get() / (double) proxyCount) * 100)) + "% Votes: " + votes.get() + " Completed: " +
+                    completed.get() + " Success Rate: " + ((int) ((votes.get() / (double) completed.get()) * 100)) + "%");
+            try {
+                Thread.sleep(1000);
+            } catch (Exception ignored) {
             }
         }
-        
-        System.out.println("Voted " + votes + " times!");
+        System.out.println("Done");
     }
     
-    private void vote(int poll, int option, String ip, int port) throws IOException {
-        
+    private void vote(int poll, int option, String ip, int port) {
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(ip, port));
-        System.out.println("Proxy: " + ip + ":" + port);
-        HttpURLConnection con = (HttpURLConnection) new URL("http://strawpoll.me/api/v2/votes").openConnection(proxy);
         
-        con.setRequestMethod("POST");
-        con.addRequestProperty("Content-Type", "application/json");
-        con.addRequestProperty("User-Agent", "Mozilla/5.0");
-        con.setDoOutput(true);
-        con.setConnectTimeout(1000);
-        con.setReadTimeout(1000);
-    
-    
-        JSONObject json = new JSONObject().put("pollId", poll).put("votes", new int[] {option});
-        con.addRequestProperty("Content-Length", Integer.toString(json.toString().length()));
-    
-        @Cleanup BufferedWriter out = new BufferedWriter(new OutputStreamWriter(con.getOutputStream()));
-        
-        
-        
-        out.write(json.toString());
-        
-        System.out.println(con.getResponseCode());
-        
-        if (con.getResponseCode() == 201) {
-            votes++;
-            System.out.println("Good proxy\n " + ip + ":" + port);
+        for (int i = 0; i < 3; i++) {
+            try {
+                HttpURLConnection con = (HttpURLConnection) new URL("http://strawpoll.me/api/v2/votes").openConnection(proxy);
+                
+                con.setRequestMethod("POST");
+                con.addRequestProperty("Content-Type", "application/json");
+                con.addRequestProperty("User-Agent", "Mozilla/5.0");
+                con.setDoOutput(true);
+                con.setConnectTimeout(20000);
+                con.setReadTimeout(20000);
+                
+                
+                JSONObject json = new JSONObject().put("pollId", poll).put("votes", new Integer[] {option});
+                con.addRequestProperty("Content-Length", Integer.toString(json.toString().length()));
+                @Cleanup BufferedWriter out = new BufferedWriter(new OutputStreamWriter(con.getOutputStream()));
+                out.write(json.toString());
+                out.close();
+                
+                int responseCode = con.getResponseCode();
+                
+                if (responseCode == 201) {
+                    votes.incrementAndGet();
+                    break;
+                }
+                con.disconnect();
+            } catch (IOException ignored) {
+            }
         }
-        con.disconnect();
-    }
-    
-    public static void main(String[] args) throws IOException {
-        new StrawPollBot().bot(5939768, 2);
+        completed.incrementAndGet();
     }
     
     private void loadFile(String name) throws IOException {
