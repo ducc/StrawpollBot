@@ -25,7 +25,7 @@ public class StrawPollBot {
     private AtomicInteger completed;
     
     public static void main(String[] args) throws IOException, InterruptedException {
-        new StrawPollBot().bot(6076888, 1);
+        new StrawPollBot().bot(6077026, 0);
     }
     
     public StrawPollBot() throws IOException {
@@ -105,7 +105,12 @@ public class StrawPollBot {
             line = scanner.nextLine();
             if (line.contains(":")) {
                 String ip = line.substring(0, line.indexOf(":"));
-                int port = Integer.parseInt(line.substring(line.indexOf(":") + 1, line.length()));
+                int port;
+                try {
+                    port = Integer.parseInt(line.substring(line.indexOf(":") + 1, line.length()));
+                } catch (NumberFormatException e) {
+                    continue;
+                }
                 proxies.put(ip, port);
             }
         }
