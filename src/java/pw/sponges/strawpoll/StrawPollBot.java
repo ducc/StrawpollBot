@@ -25,7 +25,7 @@ public class StrawPollBot {
     private AtomicInteger completed;
     
     public static void main(String[] args) throws IOException, InterruptedException {
-        new StrawPollBot().bot(6077026, 0);
+        new StrawPollBot().bot(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
     }
     
     public StrawPollBot() throws IOException {
