@@ -1,3 +1,6 @@
+## DOES NOT WORK DUE TO STRAWPOLL.ME SITE CHANGES
+I will probably update it within the next 6 months.
+
 # StrawpollBot
 A bot for voting on strawpoll.me polls!
 
